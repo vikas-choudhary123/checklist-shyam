@@ -563,7 +563,57 @@ const filteredChecklistTasks = quickTask.filter(task => {
   className="overflow-x-auto overflow-y-auto" 
   style={{ maxHeight: 'calc(100vh - 220px)' }}
 >
-                <table className="min-w-full divide-y divide-gray-200">
+                {/* Mobile Card View */}
+                <div className="sm:hidden space-y-3 p-3">
+                  {filteredChecklistTasks.length > 0 ? (
+                    filteredChecklistTasks.map((task, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedTasks.includes(task)}
+                              onChange={() => handleCheckboxChange(task)}
+                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              task.frequency === 'Daily' ? 'bg-blue-100 text-blue-800' :
+                              task.frequency === 'Weekly' ? 'bg-green-100 text-green-800' :
+                              task.frequency === 'Monthly' ? 'bg-purple-100 text-purple-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {task.frequency}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleEditClick(task)}
+                            className="text-blue-600 text-xs underline"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 mb-2">{task.task_description || "—"}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div><span className="text-gray-500">Name:</span> <span className="font-medium">{task.name || "—"}</span></div>
+                          <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{task.department || "—"}</span></div>
+                          <div><span className="text-gray-500">Given By:</span> <span className="font-medium">{task.given_by || "—"}</span></div>
+                          <div><span className="text-gray-500">Start:</span> <span className="font-medium">{formatTimestampToDDMMYYYY(task.task_start_date)}</span></div>
+                          <div><span className="text-gray-500">Reminder:</span> <span className="font-medium">{task.enable_reminder || "—"}</span></div>
+                          <div><span className="text-gray-500">Attachment:</span> <span className="font-medium">{task.require_attachment || "—"}</span></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-gray-500 text-sm">
+                      {searchTerm || nameFilter || freqFilter
+                        ? "No tasks matching your filters"
+                        : "No tasks available"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop Table View */}
+                <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
                   <thead className="bg-gray-50 sticky top-0 z-20">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">

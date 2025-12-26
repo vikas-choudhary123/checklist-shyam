@@ -27,6 +27,7 @@ function AccountDataPage() {
   const [successMessage, setSuccessMessage] = useState("")
   const [additionalData, setAdditionalData] = useState({})
   const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all") // Filter for Today/Overdue/Upcoming
   const [error, setError] = useState(null)
   const [remarksData, setRemarksData] = useState({})
   const [historyData, setHistoryData] = useState([])
@@ -366,7 +367,48 @@ function AccountDataPage() {
     if (!Array.isArray(checklist)) return [];
 
     const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    today.setHours(0, 0, 0, 0);
+    
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Helper function to get upcoming days based on frequency
+    const getUpcomingDays = (frequency) => {
+      switch (frequency?.toLowerCase()) {
+        case 'daily':
+          return 1; // Show today + 1 day (tomorrow)
+        case 'weekly':
+          return 7; // Show 7 days ahead for weekly
+        case 'fortnightly':
+          return 14;
+        case 'monthly':
+          return 30;
+        case 'quarterly':
+          return 90;
+        case 'yearly':
+          return 365;
+        default:
+          return 1;
+      }
+    };
+
+    // Helper function to get past days to show based on frequency
+    const getPastDays = (frequency) => {
+      switch (frequency?.toLowerCase()) {
+        case 'daily':
+          return 0; // Only today
+        case 'weekly':
+          return 5; // 5 days previous
+        case 'monthly':
+          return 23; // 23 days ago
+        case 'quarterly':
+          return 75; // 75 days ago
+        case 'yearly':
+          return 330; // 330 days ago
+        default:
+          return 0;
+      }
+    };
 
     let filtered = searchTerm
       ? checklist.filter((account) =>
@@ -378,15 +420,45 @@ function AccountDataPage() {
       )
       : checklist;
 
-    // Apply date filter - only show today and past dates
+    // Apply date filter based on frequency
     filtered = filtered.filter((account) => {
       if (!account.task_start_date) return false;
 
       const taskDate = new Date(account.task_start_date);
+      taskDate.setHours(0, 0, 0, 0);
       if (isNaN(taskDate.getTime())) return false;
 
-      return taskDate <= today;
+      const frequency = account.frequency || 'daily';
+      const upcomingDays = getUpcomingDays(frequency);
+
+      // Calculate future limit based on frequency
+      const futureLimit = new Date(today);
+      futureLimit.setDate(futureLimit.getDate() + upcomingDays);
+
+      // Always show ALL overdue tasks (before today) + today + upcoming tasks based on frequency
+      // This means: taskDate <= futureLimit (no past limit restriction)
+      return taskDate <= futureLimit;
     });
+
+    // Apply status filter (Today/Overdue/Upcoming)
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((account) => {
+        const taskDate = new Date(account.task_start_date);
+        taskDate.setHours(0, 0, 0, 0);
+        
+        const diffTime = taskDate.getTime() - today.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (statusFilter === 'today') {
+          return diffDays === 0;
+        } else if (statusFilter === 'overdue') {
+          return diffDays < 0;
+        } else if (statusFilter === 'upcoming') {
+          return diffDays > 0;
+        }
+        return true;
+      });
+    }
 
     return filtered.sort((a, b) => {
       const dateA = new Date(a.task_start_date || "");
@@ -397,7 +469,33 @@ function AccountDataPage() {
 
       return dateA.getTime() - dateB.getTime();
     });
-  }, [checklist, searchTerm]);
+  }, [checklist, searchTerm, statusFilter]);
+
+  // Helper function to determine task status (Today, Upcoming, Overdue)
+  const getTaskStatus = (taskStartDate) => {
+    if (!taskStartDate) return 'unknown';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const taskDate = new Date(taskStartDate);
+    taskDate.setHours(0, 0, 0, 0);
+    
+    if (isNaN(taskDate.getTime())) return 'unknown';
+    
+    const diffTime = taskDate.getTime() - today.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'overdue';
+    if (diffDays === 0) return 'today';
+    return 'upcoming';
+  };
+
+  // Check if checkbox should be enabled (only for today and overdue tasks)
+  const isCheckboxEnabled = (taskStartDate) => {
+    const status = getTaskStatus(taskStartDate);
+    return status === 'today' || status === 'overdue';
+  };
 
   const filteredHistoryData = useMemo(() => {
     if (!Array.isArray(history)) return []
@@ -810,6 +908,18 @@ const submissionData = await Promise.all(
                 className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
               />
             </div>
+            {!showHistory && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base bg-white"
+              >
+                <option value="all">All Tasks</option>
+                <option value="today">Today</option>
+                <option value="overdue">Overdue</option>
+                <option value="upcoming">Upcoming</option>
+              </select>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={toggleHistory}
@@ -1221,19 +1331,102 @@ const submissionData = await Promise.all(
               className="overflow-x-auto"
               style={{ maxHeight: 'calc(100vh - 250px)' }}
             >
-              <table className="min-w-full divide-y divide-gray-200">
+              {/* Mobile Card View */}
+              <div className="sm:hidden space-y-3 p-3">
+                {filteredAccountData.length > 0 ? (
+                  filteredAccountData.map((account, index) => {
+                    const isSelected = selectedItems.has(account.task_id);
+                    const taskStatus = getTaskStatus(account.task_start_date);
+                    const checkboxEnabled = isCheckboxEnabled(account.task_start_date);
+                    return (
+                      <div key={index} className={`bg-white border rounded-lg p-3 shadow-sm ${taskStatus === 'upcoming' ? "border-blue-300 bg-blue-50" : taskStatus === 'overdue' ? "border-red-300 bg-red-50" : "border-gray-200"}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            {userRole === "user" && (
+                              <input
+                                type="checkbox"
+                                className={`h-4 w-4 rounded border-gray-300 text-purple-600 ${!checkboxEnabled ? 'opacity-50' : ''}`}
+                                checked={isSelected}
+                                disabled={!checkboxEnabled}
+                                onChange={(e) => handleCheckboxClick(e, account.task_id)}
+                              />
+                            )}
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              taskStatus === 'today' ? "bg-green-100 text-green-800" 
+                              : taskStatus === 'upcoming' ? "bg-blue-100 text-blue-800" 
+                              : taskStatus === 'overdue' ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {taskStatus === 'today' ? 'Today' : taskStatus === 'upcoming' ? 'Upcoming' : 'Overdue'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500">#{account.task_id}</span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 mb-2">{account.task_description || "—"}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                          <div><span className="text-gray-500">Name:</span> <span className="font-medium">{account.name || "—"}</span></div>
+                          <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{account.department || "—"}</span></div>
+                          <div><span className="text-gray-500">Given By:</span> <span className="font-medium">{account.given_by || "—"}</span></div>
+                          <div><span className="text-gray-500">Frequency:</span> <span className="font-medium">{account.frequency || "—"}</span></div>
+                          <div><span className="text-gray-500">Date:</span> <span className="font-medium">{account.task_start_date ? new Date(account.task_start_date).toLocaleDateString() : "—"}</span></div>
+                        </div>
+                        {userRole === "user" && isSelected && (
+                          <div className="border-t pt-2 mt-2 space-y-2">
+                            <select
+                              value={additionalData[account.task_id] || ""}
+                              onChange={(e) => {
+                                setAdditionalData((prev) => ({ ...prev, [account.task_id]: e.target.value }));
+                              }}
+                              className="border border-gray-300 rounded-md px-2 py-1 w-full text-xs"
+                            >
+                              <option value="">Status...</option>
+                              <option value="Yes">Yes</option>
+                              <option value="No">No</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="Remarks"
+                              value={remarksData[account.task_id] || ""}
+                              onChange={(e) => setRemarksData((prev) => ({ ...prev, [account.task_id]: e.target.value }))}
+                              className="border border-gray-300 rounded-md px-2 py-1 w-full text-xs"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-6 text-gray-500 text-sm">
+                    {searchTerm ? "No tasks matching your search" : "No pending tasks found"}
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-16">
                       Seq. No.
+                    </th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Task Status
                     </th>
                     {userRole === "user" && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                          checked={filteredAccountData.length > 0 && selectedItems.size === filteredAccountData.length}
-
+                          checked={filteredAccountData.length > 0 && selectedItems.size === filteredAccountData.filter(item => isCheckboxEnabled(item.task_start_date)).length && filteredAccountData.filter(item => isCheckboxEnabled(item.task_start_date)).length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              // Only select items with enabled checkboxes (today and overdue)
+                              const enabledItems = filteredAccountData.filter(item => isCheckboxEnabled(item.task_start_date));
+                              setSelectedItems(new Set(enabledItems.map(item => item.task_id)));
+                            } else {
+                              setSelectedItems(new Set());
+                            }
+                          }}
                         />
                       </th>
                     )}
@@ -1280,20 +1473,37 @@ const submissionData = await Promise.all(
                     filteredAccountData.map((account, index) => {
                       const isSelected = selectedItems.has(account.task_id);
                       const sequenceNumber = index + 1;
+                      const taskStatus = getTaskStatus(account.task_start_date);
+                      const checkboxEnabled = isCheckboxEnabled(account.task_start_date);
                       return (
-                        <tr key={index} className={`${isSelected ? "bg-purple-50" : ""} hover:bg-gray-50`}>
+                        <tr key={index} className={`${isSelected ? "bg-purple-50" : taskStatus === 'upcoming' ? "bg-blue-50" : taskStatus === 'overdue' ? "bg-red-50" : ""} hover:bg-gray-50`}>
                           <td className="px-2 sm:px-3 py-2 sm:py-4 w-16">
                             <div className="text-xs sm:text-sm font-medium text-gray-900 text-center">
                               {sequenceNumber}
                             </div>
                           </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              taskStatus === 'today' 
+                                ? "bg-green-100 text-green-800" 
+                                : taskStatus === 'upcoming' 
+                                  ? "bg-blue-100 text-blue-800" 
+                                  : taskStatus === 'overdue'
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {taskStatus === 'today' ? 'Today' : taskStatus === 'upcoming' ? 'Upcoming' : taskStatus === 'overdue' ? 'Overdue' : '—'}
+                            </span>
+                          </td>
                           {userRole === "user" && (
                             <td className="px-2 sm:px-3 py-2 sm:py-4 w-12">
                               <input
                                 type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                className={`h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 ${!checkboxEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 checked={isSelected}
+                                disabled={!checkboxEnabled}
                                 onChange={(e) => handleCheckboxClick(e, account.task_id)}
+                                title={!checkboxEnabled ? 'Cannot select upcoming tasks' : ''}
                               />
                             </td>
                           )}

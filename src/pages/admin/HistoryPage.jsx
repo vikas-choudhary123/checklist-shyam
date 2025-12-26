@@ -294,86 +294,85 @@ function HistoryPage() {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Filters - Compact Layout */}
         <div className="bg-white rounded-lg shadow-md p-3 sm:p-4">
-          <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-3 items-end">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1 min-w-[150px]">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="Search tasks..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
               />
             </div>
 
             {/* Date Range */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1">
-                <label className="text-xs text-gray-500">From Date</label>
+            <div className="flex gap-2 items-end">
+              <div>
+                <label className="text-xs text-gray-500 block">From</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                  className="px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
                 />
               </div>
-              <div className="flex-1">
-                <label className="text-xs text-gray-500">To Date</label>
+              <div>
+                <label className="text-xs text-gray-500 block">To</label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                  className="px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
                 />
               </div>
             </div>
 
-            {/* Member Filter */}
+            {/* Member Filter Dropdown */}
             {userRole === "admin" && doerName && doerName.length > 0 && (
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Filter by Member</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="text-xs text-gray-500 block">Member</label>
+                <select
+                  value={selectedMembers[0] || ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setSelectedMembers([e.target.value]);
+                    } else {
+                      setSelectedMembers([]);
+                    }
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm bg-white min-w-[120px]"
+                >
+                  <option value="">All Members</option>
                   {getFilteredMembersList().map((member) => (
-                    <button
-                      key={member}
-                      onClick={() => handleMemberSelection(member)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                        selectedMembers.includes(member)
-                          ? "bg-purple-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {member}
-                    </button>
+                    <option key={member} value={member}>{member}</option>
                   ))}
-                </div>
+                </select>
               </div>
             )}
 
-            {/* Reset & Action Buttons */}
-            <div className="flex flex-wrap gap-2 justify-between items-center">
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Reset Filters
-              </button>
+            {/* Reset Button */}
+            <button
+              onClick={resetFilters}
+              className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
+            >
+              Reset
+            </button>
 
-              {/* Admin Approval Button */}
-              {isSuperAdmin && selectedHistoryItems.length > 0 && (
-                <button
-                  onClick={handleMarkDone}
-                  disabled={markingAsDone}
-                  className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {markingAsDone ? "Processing..." : `Approve Selected (${selectedHistoryItems.length})`}
-                </button>
-              )}
-            </div>
+            {/* Admin Approval Button */}
+            {isSuperAdmin && selectedHistoryItems.length > 0 && (
+              <button
+                onClick={handleMarkDone}
+                disabled={markingAsDone}
+                className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {markingAsDone ? "..." : `Approve (${selectedHistoryItems.length})`}
+              </button>
+            )}
           </div>
         </div>
 
@@ -404,7 +403,69 @@ function HistoryPage() {
                 <p className="text-purple-600 text-sm sm:text-base">Loading history data...</p>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
+              <>
+                {/* Mobile Card View */}
+                <div className="sm:hidden space-y-3 p-3">
+                  {filteredHistoryData.length > 0 ? (
+                    filteredHistoryData.map((historyItem, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            {isSuperAdmin && historyItem.admin_done !== 'Done' && (
+                              <input
+                                type="checkbox"
+                                checked={isItemSelected(historyItem.task_id)}
+                                onChange={(e) => handleHistoryItemSelect(historyItem.task_id, e.target.checked)}
+                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                              />
+                            )}
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              historyItem.admin_done === 'Done'
+                                ? "bg-green-100 text-green-800"
+                                : "bg-orange-100 text-orange-800"
+                            }`}>
+                              {historyItem.admin_done === 'Done' ? "Approved" : "Pending"}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500">#{historyItem.task_id}</span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 mb-2">{historyItem.task_description || "—"}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div><span className="text-gray-500">Name:</span> <span className="font-medium">{historyItem.name || "—"}</span></div>
+                          <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{historyItem.department || "—"}</span></div>
+                          <div><span className="text-gray-500">Given By:</span> <span className="font-medium">{historyItem.given_by || "—"}</span></div>
+                          <div><span className="text-gray-500">Frequency:</span> <span className="font-medium">{historyItem.frequency || "—"}</span></div>
+                          <div><span className="text-gray-500">Start:</span> <span className="font-medium">{historyItem.task_start_date ? (() => {
+                            const date = parseSupabaseDate(historyItem.task_start_date)
+                            if (!date || isNaN(date.getTime())) return "—"
+                            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`
+                          })() : "—"}</span></div>
+                          <div><span className="text-gray-500">Submitted:</span> <span className="font-medium">{historyItem.submission_date ? (() => {
+                            const dateObj = new Date(historyItem.submission_date)
+                            return `${("0" + dateObj.getDate()).slice(-2)}/${("0" + (dateObj.getMonth() + 1)).slice(-2)}/${dateObj.getFullYear()}`
+                          })() : "—"}</span></div>
+                        </div>
+                        {historyItem.remark && (
+                          <div className="mt-2 text-xs"><span className="text-gray-500">Remarks:</span> <span className="font-medium">{historyItem.remark}</span></div>
+                        )}
+                        {historyItem.image && (
+                          <a href={historyItem.image} target="_blank" rel="noopener noreferrer" className="mt-2 text-blue-600 text-xs underline flex items-center gap-1">
+                            <img src={historyItem.image} alt="Attachment" className="h-6 w-6 object-cover rounded" /> View File
+                          </a>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-gray-500 text-sm">
+                      {searchTerm || selectedMembers.length > 0 || startDate || endDate
+                        ? "No records matching your filters"
+                        : "No completed records found"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop Table View */}
+                <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {/* Checkbox Column - Only for Super Admin */}
@@ -585,6 +646,7 @@ function HistoryPage() {
                   )}
                 </tbody>
               </table>
+              </>
             )}
 
             {isLoadingMoreHistory && (

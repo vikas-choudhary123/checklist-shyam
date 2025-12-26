@@ -44,6 +44,10 @@ const CalendarComponent = ({ date, onChange, onClose }) => {
       currentMonth.getFullYear(),
       currentMonth.getMonth()
     );
+    
+    // Get today's date for comparison (without time)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < firstDayOfMonth; i++) {
@@ -52,21 +56,35 @@ const CalendarComponent = ({ date, onChange, onClose }) => {
 
     // Add cells for each day of the month
     for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        day
+      );
+      currentDate.setHours(0, 0, 0, 0);
+      
       const isSelected =
         date &&
         date.getDate() === day &&
         date.getMonth() === currentMonth.getMonth() &&
         date.getFullYear() === currentMonth.getFullYear();
+      
+      // Check if date is in the past (before today)
+      const isPastDate = currentDate < today;
 
       days.push(
         <button
           key={day}
           type="button"
-          onClick={() => handleDateClick(day)}
-          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm ${isSelected
-            ? "bg-purple-600 text-white"
-            : "hover:bg-purple-100 text-gray-700"
-            }`}
+          onClick={() => !isPastDate && handleDateClick(day)}
+          disabled={isPastDate}
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm ${
+            isPastDate
+              ? "text-gray-300 cursor-not-allowed"
+              : isSelected
+                ? "bg-purple-600 text-white"
+                : "hover:bg-purple-100 text-gray-700"
+          }`}
         >
           {day}
         </button>

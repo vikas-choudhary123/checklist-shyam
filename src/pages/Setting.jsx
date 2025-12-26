@@ -595,99 +595,85 @@ const resetUserForm = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        {/* Header and Tabs */}
-       {/* Header and Tabs */}
-<div className="my-5 flex justify-between">
-  <div className="flex justify-between items-center mb-6">
-    <h1 className="text-2xl font bold text-purple-600 font-bold">User Management System</h1>
-  </div>
-
-  <div className="flex items-center gap-4">
-    <div className="flex border border-purple-200 rounded-md overflow-hidden self-start">
-      {/* Your existing tab buttons */}
-      <button
-        className={`flex px-4 py-3 text-sm font-medium ${activeTab === 'users' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
-        onClick={() => {
-          handleTabChange('users');
-          dispatch(userDetails());
-        }}
-      >
-        <User size={18} />
-        Users
-      </button>
-      <button
-        className={`flex px-4 py-3 text-sm font-medium ${activeTab === 'departments' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
-        onClick={() => {
-          handleTabChange('departments');
-          dispatch(departmentOnlyDetails());
-          dispatch(givenByDetails());
-        }}
-      >
-        <Building size={18} />
-        Departments
-      </button>
-      <button
-        className={`flex px-4 py-3 text-sm font-medium ${activeTab === 'leave' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
-        onClick={() => {
-          handleTabChange('leave');
-          dispatch(userDetails());
-        }}
-      >
-        <Calendar size={18} />
-        Leave Management
-      </button>
-    </div>
-
-        <button
-  onClick={fetchDeviceLogsAndUpdateStatus}
-  disabled={isRefreshing}
-  className="rounded-md bg-green-600 py-2 px-4 text-white hover:bg-green-700"
->
-  <div className="flex items-center">
-    <RefreshCw size={18} className={`mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-    <span>{isRefreshing ? 'Refreshing...' : 'Refresh Status'}</span>
-  </div>
-</button>
-
-
-    {/* Add this debug button temporarily next to your refresh button */}
-<button
-  onClick={debugUserStatus}
-  className="rounded-md bg-yellow-600 py-2 px-4 text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
->
-  <div className="flex items-center">
-    <Search size={18} className="mr-2" />
-    <span>Debug User</span>
-  </div>
-</button>
-
-    {/* Refresh Button
-    <button
-      onClick={handleManualRefresh}
-      disabled={isRefreshing}
-      className="rounded-md bg-green-600 py-2 px-4 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <div className="flex items-center">
-        <RefreshCw size={18} className={`mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-        <span>{isRefreshing ? 'Refreshing...' : 'Refresh Status'}</span>
-      </div>
-    </button> */}
-
-    {/* Add button - hide for leave tab */}
-    {activeTab !== 'leave' && (
-      <button
-        onClick={handleAddButtonClick}
-        className="rounded-md gradient-bg py-2 px-4 text-white hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-      >
-        <div className="flex items-center">
-          <Plus size={18} className="mr-2" />
-          <span>{activeTab === 'users' ? 'Add User' : 'Add Department'}</span>
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          {/* Top Row: Title and Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">User Management System</h1>
+              <p className="text-sm text-gray-500">Manage users, departments, and leave</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={fetchDeviceLogsAndUpdateStatus}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+              
+              {activeTab !== 'leave' && (
+                <button
+                  onClick={handleAddButtonClick}
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-purple-600 text-white hover:bg-purple-700"
+                >
+                  <Plus size={16} />
+                  <span>{activeTab === 'users' ? 'Add User' : 'Add Department'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Bottom Row: Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'users' 
+                  ? 'border-purple-600 text-purple-600 bg-purple-50' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                handleTabChange('users');
+                dispatch(userDetails());
+              }}
+            >
+              <User size={18} />
+              Users
+            </button>
+            <button
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'departments' 
+                  ? 'border-purple-600 text-purple-600 bg-purple-50' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                handleTabChange('departments');
+                dispatch(departmentOnlyDetails());
+                dispatch(givenByDetails());
+              }}
+            >
+              <Building size={18} />
+              Departments
+            </button>
+            <button
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'leave' 
+                  ? 'border-purple-600 text-purple-600 bg-purple-50' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                handleTabChange('leave');
+                dispatch(userDetails());
+              }}
+            >
+              <Calendar size={18} />
+              Leave
+            </button>
+          </div>
         </div>
-      </button>
-    )}
-  </div>
-</div>
 {/* <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
         <h3 className="text-sm font-medium text-yellow-800">Debug Info</h3>
         <p className="text-xs text-yellow-700">
@@ -928,7 +914,43 @@ const resetUserForm = () => {
     </div>
 
     <div className="h-[calc(100vh-275px)] overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-      <table className="min-w-full divide-y divide-gray-200">
+      {/* Mobile Card View */}
+      <div className="sm:hidden space-y-3 p-3">
+        {userData
+          ?.filter(user => !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase()))
+          .map((user, index) => (
+            <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user?.status)}`}>
+                    {user?.status}
+                  </span>
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user?.role)}`}>
+                    {user?.role}
+                  </span>
+                </div>
+                <div className="flex space-x-2">
+                  <button onClick={() => handleEditUser(user?.id)} className="text-blue-600" title="Edit">
+                    <Edit size={16} />
+                  </button>
+                  <button onClick={() => handleDeleteUser(user?.id)} className="text-red-600" title="Delete">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+              <p className="text-sm font-medium text-gray-900 mb-2">{user?.user_name}</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-gray-500">Email:</span> <span className="font-medium">{user?.email_id || "—"}</span></div>
+                <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{user?.number || "—"}</span></div>
+                <div><span className="text-gray-500">Emp ID:</span> <span className="font-medium">{user?.employee_id || "N/A"}</span></div>
+                <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{user?.user_access || "N/A"}</span></div>
+              </div>
+            </div>
+          ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
         <thead className="bg-gray-50">
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -961,12 +983,6 @@ const resetUserForm = () => {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {/* {userData
-            ?.filter(user =>
-              user.user_name !== 'admin' &&
-              user.user_name !== 'DSMC' && (
-                !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase()))
-            ) */}
              {userData
             ?.filter(user =>
               !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase())
