@@ -19,12 +19,12 @@ function TrainingVideoPage() {
     admin: {
       title: "Admin Training Video",
       description: "Complete guide for administrators on how to manage tasks, users, and the system.",
-      url: "https://www.youtube.com/embed/Ia_0Xj2ysRE",
+      url: "https://www.youtube.com/embed/HgJPzwnnqT4",
     },
     user: {
       title: "User Training Video", 
       description: "Learn how to use the checklist and delegation system effectively.",
-      url: "https://www.youtube.com/embed/Ia_0Xj2ysRE",
+      url: "https://www.youtube.com/embed/Ke4GqjtVp1Y",
     }
   }
 
