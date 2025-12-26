@@ -113,7 +113,7 @@ const LoginPage = () => {
             alt="Shri Shyam Logo"
             className="h-16 w-auto mx-auto"
           />
-          <h2 className="text-2xl font-bold text-blue-700 p-2 items-center justify-center">Checklist & Delegation</h2>
+          <h2 className="text-2xl font-bold text-blue-700 p-2 text-center">Checklist & Delegation</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
