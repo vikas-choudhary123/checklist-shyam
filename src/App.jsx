@@ -16,6 +16,8 @@ import Setting from "./pages/Setting"
 import MisReport from "./pages/MisReport"
 import HistoryPage from "./pages/admin/HistoryPage"
 import TrainingVideoPage from "./pages/admin/TrainingVideoPage"
+import CalendarPage from "./pages/admin/CalendarPage"
+import HolidayManagementPage from "./pages/admin/HolidayManagementPage"
 import RealtimeLogoutListener from "./components/RealtimeLogoutListener"   // ✅ Added listener
 
 // Auth wrapper component to protect routes
@@ -133,6 +135,26 @@ function App() {
           element={
             <ProtectedRoute>
               <HistoryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Calendar page route */}
+        <Route
+          path="/dashboard/calendar"
+          element={
+            <ProtectedRoute>
+              <CalendarPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Holiday Management page route */}
+        <Route
+          path="/dashboard/holidays"
+          element={
+            <ProtectedRoute>
+              <HolidayManagementPage />
             </ProtectedRoute>
           }
         />

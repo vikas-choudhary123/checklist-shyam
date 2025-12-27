@@ -255,7 +255,7 @@ useEffect(()=>{
                     TASK DESCRIPTION
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">
-                    TASK START DATE
+                    TASK END DATE
                   </th>
                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">
                     TASK END DATE

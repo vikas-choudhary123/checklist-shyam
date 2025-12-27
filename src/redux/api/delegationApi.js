@@ -103,6 +103,16 @@ export const fetchDelegation_DoneDataSortByDate = async () => {
   return data;
 };
 
+// ADMIN DONE - Mark delegation items as approved
+export const postDelegationAdminDoneAPI = async (items) => {
+  try {
+    const { data } = await axios.post(`${API}/delegation/admin-done`, items);
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+};
+
 // SUBMIT
 // export const insertDelegationDoneAndUpdate = async ({
 //   selectedDataArray,

@@ -21,6 +21,7 @@ import {
   X,
   History,
   Video,
+  Calendar,
 } from "lucide-react";
 
 export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
@@ -113,6 +114,20 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       icon: History,
       active: location.pathname === "/dashboard/history",
       showFor: ["admin", "user"],
+    },
+    {
+      href: "/dashboard/calendar",
+      label: "Calendar",
+      icon: Calendar,
+      active: location.pathname === "/dashboard/calendar",
+      showFor: ["admin", "user"],
+    },
+    {
+      href: "/dashboard/holidays",
+      label: "Holiday List",
+      icon: CalendarCheck,
+      active: location.pathname === "/dashboard/holidays",
+      showFor: ["admin"],
     },
     // {
     //   href: "/dashboard/mis-report",

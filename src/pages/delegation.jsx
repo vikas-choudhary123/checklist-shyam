@@ -5,8 +5,6 @@ import {
   Upload,
   X,
   Search,
-  History,
-  ArrowLeft,
   Filter,
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
@@ -61,8 +59,6 @@ function DelegationDataPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
   const [remarksData, setRemarksData] = useState({});
-  const [historyData, setHistoryData] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
   const [statusData, setStatusData] = useState({});
   const [nextTargetDate, setNextTargetDate] = useState({});
   const [startDate, setStartDate] = useState("");
@@ -286,72 +282,8 @@ function DelegationDataPage() {
         }
       }
 
-      return matchesSearch && matchesDateFilter;
     });
   }, [delegation, debouncedSearchTerm, dateFilter]);
-
-  const filteredHistoryData = useMemo(() => {
-    if (!delegation_done) return [];
-
-    return delegation_done
-      .filter((item) => {
-        const userMatch =
-          userRole === "admin" ||
-          (item.name && item.name.toLowerCase() === username.toLowerCase());
-        if (!userMatch) return false;
-
-        const matchesSearch = debouncedSearchTerm
-          ? Object.values(item).some(
-            (value) =>
-              value &&
-              value
-                .toString()
-                .toLowerCase()
-                .includes(debouncedSearchTerm.toLowerCase())
-          )
-          : true;
-
-        let matchesDateRange = true;
-        if (startDate || endDate) {
-          const itemDate = item.created_at ? new Date(item.created_at) : null;
-
-          if (!itemDate || isNaN(itemDate.getTime())) {
-            return false;
-          }
-
-          if (startDate) {
-            const startDateObj = new Date(startDate);
-            startDateObj.setHours(0, 0, 0, 0);
-            if (itemDate < startDateObj) matchesDateRange = false;
-          }
-
-          if (endDate) {
-            const endDateObj = new Date(endDate);
-            endDateObj.setHours(23, 59, 59, 999);
-            if (itemDate > endDateObj) matchesDateRange = false;
-          }
-        }
-
-        return matchesSearch && matchesDateRange;
-      })
-      .sort((a, b) => {
-        const dateA = a.created_at ? new Date(a.created_at) : null;
-        const dateB = b.created_at ? new Date(b.created_at) : null;
-
-        if (!dateA && !dateB) return 0;
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-
-        return dateB.getTime() - dateA.getTime();
-      });
-  }, [
-    delegation_done,
-    debouncedSearchTerm,
-    startDate,
-    endDate,
-    userRole,
-    username,
-  ]);
 
   const handleSelectItem = useCallback((id, isChecked) => {
     setSelectedItems((prev) => {
@@ -455,11 +387,6 @@ function DelegationDataPage() {
       reader.onerror = (error) => reject(error);
     });
   }, []);
-
-  const toggleHistory = useCallback(() => {
-    setShowHistory((prev) => !prev);
-    resetFilters();
-  }, [resetFilters]);
 
 //   const handleSubmit = async () => {
 //     const selectedItemsArray = Array.from(selectedItems);
@@ -756,9 +683,7 @@ const handleSubmit = async () => {
       <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
         <div className="flex flex-col gap-3 sm:gap-4">
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-purple-700">
-            {showHistory
-              ? CONFIG.PAGE_CONFIG.historyTitle
-              : CONFIG.PAGE_CONFIG.title}
+            {CONFIG.PAGE_CONFIG.title}
           </h1>
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
@@ -769,68 +694,43 @@ const handleSubmit = async () => {
               />
               <input
                 type="text"
-                placeholder={
-                  showHistory ? "Search by Task ID..." : "Search tasks..."
-                }
+                placeholder="Search tasks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
               />
             </div>
 
-            {!showHistory && (
-              <div className="flex items-center gap-2">
-                {/* <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" /> */}
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="flex-1 sm:flex-none border border-gray-300 rounded-md px-2 py-1 text-xs sm:text-sm"
-                >
-                  {filterOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {/* <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" /> */}
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="flex-1 sm:flex-none border border-gray-300 rounded-md px-2 py-1 text-xs sm:text-sm"
+              >
+                {filterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div className="flex gap-2">
               <button
-                onClick={toggleHistory}
-                className="flex-1 sm:flex-none rounded-md gradient-bg py-2 px-3 sm:px-4 text-white hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm sm:text-base"
+                onClick={handleSubmit}
+                disabled={selectedItemsCount === 0 || isSubmitting}
+                className="flex-1 sm:flex-none rounded-md gradient-bg py-2 px-3 sm:px-4 text-white hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
-                {showHistory ? (
-                  <div className="flex items-center justify-center">
-                    <ArrowLeft className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">Back to Tasks</span>
-                    <span className="sm:hidden">Back</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <History className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">View History</span>
-                    <span className="sm:hidden">History</span>
-                  </div>
-                )}
+                {isSubmitting
+                  ? "Processing..."
+                  : (
+                    <>
+                      <span className="hidden sm:inline">Submit Selected ({selectedItemsCount})</span>
+                      <span className="sm:hidden">Submit ({selectedItemsCount})</span>
+                    </>
+                  )}
               </button>
-
-              {!showHistory && (
-                <button
-                  onClick={handleSubmit}
-                  disabled={selectedItemsCount === 0 || isSubmitting}
-                  className="flex-1 sm:flex-none rounded-md gradient-bg py-2 px-3 sm:px-4 text-white hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                >
-                  {isSubmitting
-                    ? "Processing..."
-                    : (
-                      <>
-                        <span className="hidden sm:inline">Submit Selected ({selectedItemsCount})</span>
-                        <span className="sm:hidden">Submit ({selectedItemsCount})</span>
-                      </>
-                    )}
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -853,15 +753,10 @@ const handleSubmit = async () => {
         <div className="rounded-lg border border-purple-200 shadow-md bg-white overflow-hidden">
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-3 sm:p-4">
             <h2 className="text-purple-700 font-medium text-sm sm:text-base">
-              {showHistory
-                ? `Completed ${CONFIG.SOURCE_SHEET_NAME} Tasks`
-                : `Pending ${CONFIG.SOURCE_SHEET_NAME} Tasks`}
+              {`Pending ${CONFIG.SOURCE_SHEET_NAME} Tasks`}
             </h2>
             <p className="text-purple-600 text-xs sm:text-sm mt-1">
-              {showHistory
-                ? `${CONFIG.PAGE_CONFIG.historyDescription} for ${userRole === "admin" ? "all" : "your"
-                } tasks`
-                : CONFIG.PAGE_CONFIG.description}
+              {CONFIG.PAGE_CONFIG.description}
             </p>
           </div>
 
@@ -880,204 +775,6 @@ const handleSubmit = async () => {
                 Try again
               </button>
             </div>
-          ) : showHistory ? (
-            <>
-              {/* Simplified History Filters - Only Date Range */}
-              <div className="p-3 sm:p-4 border-b border-purple-100 bg-gray-50">
-                <div className="flex flex-col gap-3 sm:gap-4">
-                  <div className="flex flex-col">
-                    <div className="mb-2 flex items-center">
-                      <span className="text-xs sm:text-sm font-medium text-purple-700">
-                        Filter by Date Range:
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                      <div className="flex items-center w-full sm:w-auto">
-                        <label
-                          htmlFor="start-date"
-                          className="text-xs sm:text-sm text-gray-700 mr-1 whitespace-nowrap"
-                        >
-                          From
-                        </label>
-                        <input
-                          id="start-date"
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="flex-1 sm:flex-none text-xs sm:text-sm border border-gray-200 rounded-md p-1"
-                        />
-                      </div>
-                      <div className="flex items-center w-full sm:w-auto">
-                        <label
-                          htmlFor="end-date"
-                          className="text-xs sm:text-sm text-gray-700 mr-1 whitespace-nowrap"
-                        >
-                          To
-                        </label>
-                        <input
-                          id="end-date"
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="flex-1 sm:flex-none text-xs sm:text-sm border border-gray-200 rounded-md p-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {(startDate || endDate || searchTerm) && (
-                    <button
-                      onClick={resetFilters}
-                      className="px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 text-xs sm:text-sm w-full sm:w-auto"
-                    >
-                      Clear All Filters
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* History Table - Mobile Responsive */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                        Timestamp
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                        Task ID
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
-                        Task
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                        Status
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                        Next Target
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-                        Remarks
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                        Image
-                      </th>
-                      {userRole === "admin" && (
-                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                          User
-                        </th>
-                      )}
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                        Given By
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredHistoryData.length > 0 ? (
-                      filteredHistoryData.map((history, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-3 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm font-medium text-gray-900 whitespace-normal break-words">
-                              {formatDateTimeForDisplay(history.created_at) ||
-                                "—"}
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {history.task_id || "—"}
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-2 sm:py-4 min-w-[200px] max-w-[300px]">
-                            <div
-                              className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words leading-relaxed"
-                              title={history.task_description}
-                            >
-                              {history.task_description || "—"}
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-2 sm:py-4">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-normal ${history.status === "done"
-                                ? "bg-green-100 text-green-800"
-                                : history.status === "extend"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-gray-100 text-gray-800"
-                                }`}
-                            >
-                              {history.status || "—"}
-                            </span>
-                          </td>
-                          <td className="px-3 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {formatDateTimeForDisplay(
-                                history.next_extend_date
-                              ) || "—"}
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-2 sm:py-4 bg-purple-50 min-w-[150px] max-w-[250px]">
-                            <div
-                              className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words leading-relaxed"
-                              title={history.reason}
-                            >
-                              {history.reason || "—"}
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-2 sm:py-4">
-                            {history.image_url ? (
-                              <a
-                                href={history.image_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline flex items-center"
-                              >
-                                <img
-                                  src={
-                                    history.image_url ||
-                                    "/api/placeholder/32/32"
-                                  }
-                                  alt="Attachment"
-                                  className="h-6 w-6 sm:h-8 sm:w-8 object-cover rounded-md mr-2 flex-shrink-0"
-                                />
-                                <span className="text-xs whitespace-normal break-words">
-                                  View
-                                </span>
-                              </a>
-                            ) : (
-                              <span className="text-gray-400 text-xs">
-                                No file
-                              </span>
-                            )}
-                          </td>
-                          {userRole === "admin" && (
-                            <td className="px-3 sm:px-6 py-2 sm:py-4">
-                              <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                                {history.name || "—"}
-                              </div>
-                            </td>
-                          )}
-                          <td className="px-3 sm:px-6 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words">
-                              {history.given_by || "—"}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={userRole === "admin" ? 9 : 8}
-                          className="px-4 sm:px-6 py-4 text-center text-gray-500 text-xs sm:text-sm"
-                        >
-                          {searchTerm || startDate || endDate
-                            ? "No historical records matching your filters"
-                            : "No completed records found"}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
           ) : (
             /* Regular Tasks Table - Mobile Responsive */
             <div className="overflow-x-auto">
@@ -1114,7 +811,7 @@ const handleSubmit = async () => {
                       Task Description
                     </th>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-yellow-50">
-                      Start Date
+                      End Date
                     </th>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-green-50">
                       Planned Date

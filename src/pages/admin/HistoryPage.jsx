@@ -5,9 +5,12 @@ import AdminLayout from "../../components/layout/AdminLayout"
 import { useDispatch, useSelector } from "react-redux"
 import { checklistHistoryData } from "../../redux/slice/checklistSlice"
 import { postChecklistAdminDoneAPI } from "../../redux/api/checkListApi"
+import { postDelegationAdminDoneAPI } from "../../redux/api/delegationApi"
 import { uniqueDoerNameData } from "../../redux/slice/assignTaskSlice"
+import { delegationDoneData } from "../../redux/slice/delegationSlice"
 
 function HistoryPage() {
+  const [activeTab, setActiveTab] = useState("checklist") // 'checklist' or 'delegation'
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMembers, setSelectedMembers] = useState([])
   const [startDate, setStartDate] = useState("")
@@ -22,14 +25,17 @@ function HistoryPage() {
 
   // Admin approval states
   const [selectedHistoryItems, setSelectedHistoryItems] = useState([])
+  const [selectedDelegationItems, setSelectedDelegationItems] = useState([])
   const [markingAsDone, setMarkingAsDone] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     itemCount: 0,
+    type: "checklist" // 'checklist' or 'delegation'
   })
 
   const { history } = useSelector((state) => state.checkList)
+  const { delegation_done } = useSelector((state) => state.delegation)
   const { doerName } = useSelector((state) => state.assignTask)
   const dispatch = useDispatch()
 
@@ -37,6 +43,7 @@ function HistoryPage() {
 
   useEffect(() => {
     dispatch(checklistHistoryData(1))
+    dispatch(delegationDoneData())
     dispatch(uniqueDoerNameData())
   }, [dispatch])
 
@@ -108,7 +115,7 @@ function HistoryPage() {
     setEndDate("")
   }
 
-  // Handle checkbox selection for admin approval
+  // Handle checkbox selection for checklist admin approval
   const handleHistoryItemSelect = (taskId, isChecked) => {
     if (isChecked) {
       setSelectedHistoryItems(prev => [...prev, { task_id: taskId }])
@@ -117,7 +124,16 @@ function HistoryPage() {
     }
   }
 
-  // Handle select all for items without admin_done = 'Done'
+  // Handle checkbox selection for delegation admin approval
+  const handleDelegationItemSelect = (id, isChecked) => {
+    if (isChecked) {
+      setSelectedDelegationItems(prev => [...prev, { id: id }])
+    } else {
+      setSelectedDelegationItems(prev => prev.filter(item => item.id !== id))
+    }
+  }
+
+  // Handle select all for checklist items without admin_done = 'Done'
   const handleSelectAll = (isChecked) => {
     if (isChecked) {
       const pendingItems = filteredHistoryData
@@ -129,28 +145,59 @@ function HistoryPage() {
     }
   }
 
+  // Handle select all for delegation items without admin_done = 'Done'
+  const handleSelectAllDelegation = (isChecked) => {
+    if (isChecked) {
+      const pendingItems = filteredDelegationData
+        .filter(item => item.admin_done !== 'Done')
+        .map(item => ({ id: item.id }))
+      setSelectedDelegationItems(pendingItems)
+    } else {
+      setSelectedDelegationItems([])
+    }
+  }
+
   // Mark selected items as done
-  const handleMarkDone = async () => {
-    if (selectedHistoryItems.length === 0) return
+  const handleMarkDone = async (type) => {
+    const items = type === "checklist" ? selectedHistoryItems : selectedDelegationItems
+    if (items.length === 0) return
     setConfirmationModal({
       isOpen: true,
-      itemCount: selectedHistoryItems.length,
+      itemCount: items.length,
+      type: type
     })
   }
 
   const confirmMarkDone = async () => {
-    setConfirmationModal({ isOpen: false, itemCount: 0 })
+    const type = confirmationModal.type
+    setConfirmationModal({ isOpen: false, itemCount: 0, type: "checklist" })
     setMarkingAsDone(true)
     try {
-      const { data, error } = await postChecklistAdminDoneAPI(selectedHistoryItems)
+      let data, error
+      if (type === "checklist") {
+        const result = await postChecklistAdminDoneAPI(selectedHistoryItems)
+        data = result.data
+        error = result.error
+      } else {
+        const result = await postDelegationAdminDoneAPI(selectedDelegationItems)
+        data = result.data
+        error = result.error
+      }
 
       if (error) {
         throw new Error(error.message || "Failed to mark items as done")
       }
 
-      setSelectedHistoryItems([])
-      dispatch(checklistHistoryData(1))
-      setSuccessMessage(`Successfully marked ${selectedHistoryItems.length} items as approved!`)
+      if (type === "checklist") {
+        setSelectedHistoryItems([])
+        dispatch(checklistHistoryData(1))
+      } else {
+        setSelectedDelegationItems([])
+        dispatch(delegationDoneData())
+      }
+      
+      const count = type === "checklist" ? selectedHistoryItems.length : selectedDelegationItems.length
+      setSuccessMessage(`Successfully marked ${count} items as approved!`)
       
       setTimeout(() => setSuccessMessage(""), 3000)
     } catch (error) {
@@ -161,7 +208,7 @@ function HistoryPage() {
     }
   }
 
-  // Filtered data
+  // Filtered checklist data
   const filteredHistoryData = useMemo(() => {
     if (!Array.isArray(history)) return []
 
@@ -212,6 +259,54 @@ function HistoryPage() {
     return filtered.slice(0, currentPageHistory * 50)
   }, [history, searchTerm, selectedMembers, startDate, endDate, currentPageHistory])
 
+  // Filtered delegation data
+  const filteredDelegationData = useMemo(() => {
+    if (!Array.isArray(delegation_done)) return []
+
+    return delegation_done
+      .filter((item) => {
+        const userMatch =
+          userRole === "admin" ||
+          (item.name && item.name.toLowerCase() === username.toLowerCase())
+        if (!userMatch) return false
+
+        const matchesSearch = searchTerm
+          ? Object.entries(item).some(([key, value]) => {
+            if (['image_url', 'admin_done'].includes(key)) return false
+            return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+          })
+          : true
+
+        let matchesDateRange = true
+        if (startDate || endDate) {
+          const itemDate = item.created_at ? new Date(item.created_at) : null
+          if (!itemDate || isNaN(itemDate.getTime())) return false
+
+          if (startDate) {
+            const startDateObj = new Date(startDate)
+            startDateObj.setHours(0, 0, 0, 0)
+            if (itemDate < startDateObj) matchesDateRange = false
+          }
+
+          if (endDate) {
+            const endDateObj = new Date(endDate)
+            endDateObj.setHours(23, 59, 59, 999)
+            if (itemDate > endDateObj) matchesDateRange = false
+          }
+        }
+
+        return matchesSearch && matchesDateRange
+      })
+      .sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at) : null
+        const dateB = b.created_at ? new Date(b.created_at) : null
+        if (!dateA && !dateB) return 0
+        if (!dateA) return 1
+        if (!dateB) return -1
+        return dateB.getTime() - dateA.getTime()
+      })
+  }, [delegation_done, searchTerm, startDate, endDate, userRole, username])
+
   const handleMemberSelection = (member) => {
     setSelectedMembers((prev) => {
       if (prev.includes(member)) {
@@ -235,8 +330,13 @@ function HistoryPage() {
     return selectedHistoryItems.some(item => item.task_id === taskId)
   }
 
+  const isDelegationItemSelected = (id) => {
+    return selectedDelegationItems.some(item => item.id === id)
+  }
+
   // Count pending approval items
   const pendingApprovalCount = filteredHistoryData.filter(item => item.admin_done !== 'Done').length
+  const pendingDelegationApprovalCount = filteredDelegationData.filter(item => item.admin_done !== 'Done').length
 
   // Confirmation Modal Component
   const ConfirmationModal = ({ isOpen, itemCount, onConfirm, onCancel }) => {
@@ -275,200 +375,185 @@ function HistoryPage() {
     )
   }
 
+  const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return "—"
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return "—"
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${day}/${month}/${year} ${hours}:${minutes}`
+  }
+
   return (
     <AdminLayout>
-      <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-purple-700">
-            History - Approval Pending
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base">
-            View completed tasks and approve them (Admin only can approve)
-          </p>
+      <div className="space-y-2 p-2 sm:p-0">
+        {/* Header - Compact */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-purple-700">Approval Pending</h1>
+          </div>
+        </div>
+
+        {/* Tabs - Compact */}
+        <div className="bg-white rounded-md shadow-sm">
+          <div className="flex">
+            <button
+              onClick={() => {
+                setActiveTab("checklist")
+                setSearchTerm("")
+                setSelectedHistoryItems([])
+                setSelectedDelegationItems([])
+              }}
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-l-md transition-colors ${
+                activeTab === "checklist"
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Checklist
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("delegation")
+                setSearchTerm("")
+                setSelectedHistoryItems([])
+                setSelectedDelegationItems([])
+              }}
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-r-md transition-colors ${
+                activeTab === "delegation"
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Delegation
+            </button>
+          </div>
         </div>
 
         {/* Success Message */}
         {successMessage && (
-          <div className={`p-4 rounded-lg ${successMessage.includes('Failed') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+          <div className={`p-2 rounded-md text-sm ${successMessage.includes('Failed') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
             {successMessage}
           </div>
         )}
 
-        {/* Filters - Compact Layout */}
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4">
-          <div className="flex flex-wrap gap-2 sm:gap-3 items-end">
+        {/* Filters + Stats - Combined Compact */}
+        <div className="bg-white rounded-md shadow-sm p-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {/* Search */}
-            <div className="relative flex-1 min-w-[150px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <div className="relative flex-1 min-w-[120px] max-w-[200px]">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-3 w-3" />
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                className="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
             {/* Date Range */}
-            <div className="flex gap-2 items-end">
-              <div>
-                <label className="text-xs text-gray-500 block">From</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 block">To</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                />
-              </div>
+            <div className="flex gap-1 items-center">
+              <span className="text-xs text-gray-500">From</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-1.5 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-purple-500"
+              />
+              <span className="text-xs text-gray-500">To</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-1.5 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-purple-500"
+              />
             </div>
 
-            {/* Member Filter Dropdown */}
-            {userRole === "admin" && doerName && doerName.length > 0 && (
-              <div>
-                <label className="text-xs text-gray-500 block">Member</label>
-                <select
-                  value={selectedMembers[0] || ""}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setSelectedMembers([e.target.value]);
-                    } else {
-                      setSelectedMembers([]);
-                    }
-                  }}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm bg-white min-w-[120px]"
-                >
-                  <option value="">All Members</option>
-                  {getFilteredMembersList().map((member) => (
-                    <option key={member} value={member}>{member}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Member Filter Dropdown - Only for Checklist */}
+            {activeTab === "checklist" && userRole === "admin" && doerName && doerName.length > 0 && (
+              <select
+                value={selectedMembers[0] || ""}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setSelectedMembers([e.target.value]);
+                  } else {
+                    setSelectedMembers([]);
+                  }
+                }}
+                className="px-2 py-1 border border-gray-300 rounded text-xs bg-white min-w-[100px]"
+              >
+                <option value="">All Members</option>
+                {getFilteredMembersList().map((member) => (
+                  <option key={member} value={member}>{member}</option>
+                ))}
+              </select>
             )}
 
             {/* Reset Button */}
             <button
               onClick={resetFilters}
-              className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
+              className="px-2 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
             >
               Reset
             </button>
 
+            {/* Stats - Inline */}
+            <div className="flex gap-3 ml-auto text-xs">
+              <span className="text-purple-600 font-medium">
+                {activeTab === "checklist" ? filteredHistoryData.length : filteredDelegationData.length} Total
+              </span>
+              <span className="text-orange-600 font-medium">
+                {activeTab === "checklist" ? pendingApprovalCount : pendingDelegationApprovalCount} Pending
+              </span>
+              <span className="text-green-600 font-medium">
+                {activeTab === "checklist" 
+                  ? filteredHistoryData.length - pendingApprovalCount 
+                  : filteredDelegationData.length - pendingDelegationApprovalCount} Approved
+              </span>
+            </div>
+
             {/* Admin Approval Button */}
-            {isSuperAdmin && selectedHistoryItems.length > 0 && (
+            {isSuperAdmin && activeTab === "checklist" && selectedHistoryItems.length > 0 && (
               <button
-                onClick={handleMarkDone}
+                onClick={() => handleMarkDone("checklist")}
                 disabled={markingAsDone}
-                className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
               >
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircle2 className="h-3 w-3" />
                 {markingAsDone ? "..." : `Approve (${selectedHistoryItems.length})`}
+              </button>
+            )}
+
+            {isSuperAdmin && activeTab === "delegation" && selectedDelegationItems.length > 0 && (
+              <button
+                onClick={() => handleMarkDone("delegation")}
+                disabled={markingAsDone}
+                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                {markingAsDone ? "..." : `Approve (${selectedDelegationItems.length})`}
               </button>
             )}
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{filteredHistoryData.length}</div>
-              <div className="text-xs text-gray-500">Total Records</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{pendingApprovalCount}</div>
-              <div className="text-xs text-gray-500">Pending Approval</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{filteredHistoryData.length - pendingApprovalCount}</div>
-              <div className="text-xs text-gray-500">Approved</div>
-            </div>
-          </div>
-        </div>
-
-        {/* History Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div ref={historyTableContainerRef} className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+        {/* Table Container - More height */}
+        <div className="bg-white rounded-md shadow-sm overflow-hidden">
+          <div ref={historyTableContainerRef} className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
             {initialHistoryLoading ? (
               <div className="text-center py-10">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
-                <p className="text-purple-600 text-sm sm:text-base">Loading history data...</p>
+                <p className="text-purple-600 text-sm sm:text-base">Loading data...</p>
               </div>
-            ) : (
-              <>
-                {/* Mobile Card View */}
-                <div className="sm:hidden space-y-3 p-3">
-                  {filteredHistoryData.length > 0 ? (
-                    filteredHistoryData.map((historyItem, index) => (
-                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-2">
-                            {isSuperAdmin && historyItem.admin_done !== 'Done' && (
-                              <input
-                                type="checkbox"
-                                checked={isItemSelected(historyItem.task_id)}
-                                onChange={(e) => handleHistoryItemSelect(historyItem.task_id, e.target.checked)}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                              />
-                            )}
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              historyItem.admin_done === 'Done'
-                                ? "bg-green-100 text-green-800"
-                                : "bg-orange-100 text-orange-800"
-                            }`}>
-                              {historyItem.admin_done === 'Done' ? "Approved" : "Pending"}
-                            </span>
-                          </div>
-                          <span className="text-xs text-gray-500">#{historyItem.task_id}</span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-900 mb-2">{historyItem.task_description || "—"}</p>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div><span className="text-gray-500">Name:</span> <span className="font-medium">{historyItem.name || "—"}</span></div>
-                          <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{historyItem.department || "—"}</span></div>
-                          <div><span className="text-gray-500">Given By:</span> <span className="font-medium">{historyItem.given_by || "—"}</span></div>
-                          <div><span className="text-gray-500">Frequency:</span> <span className="font-medium">{historyItem.frequency || "—"}</span></div>
-                          <div><span className="text-gray-500">Start:</span> <span className="font-medium">{historyItem.task_start_date ? (() => {
-                            const date = parseSupabaseDate(historyItem.task_start_date)
-                            if (!date || isNaN(date.getTime())) return "—"
-                            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`
-                          })() : "—"}</span></div>
-                          <div><span className="text-gray-500">Submitted:</span> <span className="font-medium">{historyItem.submission_date ? (() => {
-                            const dateObj = new Date(historyItem.submission_date)
-                            return `${("0" + dateObj.getDate()).slice(-2)}/${("0" + (dateObj.getMonth() + 1)).slice(-2)}/${dateObj.getFullYear()}`
-                          })() : "—"}</span></div>
-                        </div>
-                        {historyItem.remark && (
-                          <div className="mt-2 text-xs"><span className="text-gray-500">Remarks:</span> <span className="font-medium">{historyItem.remark}</span></div>
-                        )}
-                        {historyItem.image && (
-                          <a href={historyItem.image} target="_blank" rel="noopener noreferrer" className="mt-2 text-blue-600 text-xs underline flex items-center gap-1">
-                            <img src={historyItem.image} alt="Attachment" className="h-6 w-6 object-cover rounded" /> View File
-                          </a>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-gray-500 text-sm">
-                      {searchTerm || selectedMembers.length > 0 || startDate || endDate
-                        ? "No records matching your filters"
-                        : "No completed records found"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Desktop Table View */}
-                <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
+            ) : activeTab === "checklist" ? (
+              /* Checklist Table */
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    {/* Checkbox Column - Only for Super Admin */}
                     {isSuperAdmin && (
                       <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <input
@@ -479,49 +564,24 @@ function HistoryPage() {
                         />
                       </th>
                     )}
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Admin Status
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Task ID
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Department
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Given By
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-                      Task Description
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">
-                      Task Start Date
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Frequency
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">
-                      Submission Date
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
-                      Status
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">
-                      Remarks
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      File
-                    </th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Task Description</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Task Start Date</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">Submission Date</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">Remarks</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredHistoryData.length > 0 ? (
                     filteredHistoryData.map((historyItem, index) => (
                       <tr key={index} className="hover:bg-gray-50">
-                        {/* Checkbox - Only show if admin_done is NOT 'Done' */}
                         {isSuperAdmin && (
                           <td className="px-2 sm:px-3 py-2 sm:py-4">
                             {historyItem.admin_done !== 'Done' ? (
@@ -536,7 +596,6 @@ function HistoryPage() {
                             )}
                           </td>
                         )}
-                        {/* Admin Done Status */}
                         <td className="px-2 sm:px-3 py-2 sm:py-4">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             historyItem.admin_done === 'Done'
@@ -547,9 +606,7 @@ function HistoryPage() {
                           </span>
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4">
-                          <div className="text-xs sm:text-sm font-medium text-gray-900">
-                            {historyItem.task_id || "—"}
-                          </div>
+                          <div className="text-xs sm:text-sm font-medium text-gray-900">{historyItem.task_id || "—"}</div>
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-4">
                           <div className="text-xs sm:text-sm text-gray-900">{historyItem.department || "—"}</div>
@@ -646,7 +703,132 @@ function HistoryPage() {
                   )}
                 </tbody>
               </table>
-              </>
+            ) : (
+              /* Delegation Table */
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    {isSuperAdmin && (
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          onChange={(e) => handleSelectAllDelegation(e.target.checked)}
+                          checked={selectedDelegationItems.length > 0 && selectedDelegationItems.length === pendingDelegationApprovalCount}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </th>
+                    )}
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given By</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Task Description</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50">Created At</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Status</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Extend Date</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50 min-w-[120px]">Reason</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredDelegationData.length > 0 ? (
+                    filteredDelegationData.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        {isSuperAdmin && (
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            {item.admin_done !== 'Done' ? (
+                              <input
+                                type="checkbox"
+                                checked={isDelegationItemSelected(item.id)}
+                                onChange={(e) => handleDelegationItemSelect(item.id, e.target.checked)}
+                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                              />
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.admin_done === 'Done'
+                              ? "bg-green-100 text-green-800"
+                              : "bg-orange-100 text-orange-800"
+                          }`}>
+                            {item.admin_done === 'Done' ? "Approved" : "Pending"}
+                          </span>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <div className="text-xs sm:text-sm font-medium text-gray-900">{item.task_id || "—"}</div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <div className="text-xs sm:text-sm text-gray-900">{item.given_by || "—"}</div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <div className="text-xs sm:text-sm text-gray-900">{item.name || "—"}</div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]">
+                          <div className="text-xs sm:text-sm text-gray-900" title={item.task_description}>
+                            {item.task_description || "—"}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+                          <div className="text-xs sm:text-sm text-gray-900">
+                            {formatDateForDisplay(item.created_at)}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-blue-50">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : item.status === "extend"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {item.status || "—"}
+                          </span>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          <div className="text-xs sm:text-sm text-gray-900">
+                            {item.next_extend_date ? formatDateForDisplay(item.next_extend_date) : "—"}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4 bg-purple-50 min-w-[120px]">
+                          <div className="text-xs sm:text-sm text-gray-900" title={item.reason}>
+                            {item.reason || "—"}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 sm:py-4">
+                          {item.image_url ? (
+                            <a
+                              href={item.image_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline flex items-center text-xs sm:text-sm"
+                            >
+                              <img
+                                src={item.image_url}
+                                alt="Attachment"
+                                className="h-6 w-6 sm:h-8 sm:w-8 object-cover rounded-md mr-2"
+                              />
+                              View
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 text-xs sm:text-sm">No file</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={isSuperAdmin ? 12 : 11} className="px-4 sm:px-6 py-4 text-center text-gray-500 text-xs sm:text-sm">
+                        {searchTerm || startDate || endDate
+                          ? "No records matching your filters"
+                          : "No delegation records found"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             )}
 
             {isLoadingMoreHistory && (
@@ -665,7 +847,7 @@ function HistoryPage() {
           isOpen={confirmationModal.isOpen}
           itemCount={confirmationModal.itemCount}
           onConfirm={confirmMarkDone}
-          onCancel={() => setConfirmationModal({ isOpen: false, itemCount: 0 })}
+          onCancel={() => setConfirmationModal({ isOpen: false, itemCount: 0, type: "checklist" })}
         />
       </div>
     </AdminLayout>
