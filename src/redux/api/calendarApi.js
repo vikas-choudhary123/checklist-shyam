@@ -17,7 +17,7 @@ export const fetchCalendarTasks = async (month, year, username, role) => {
       params.role = role;
     }
     
-    const response = await axios.get(`${API_URL}/api/calendar/tasks`, { params });
+    const response = await axios.get(`${API_URL}/calendar/tasks`, { params });
     return response.data;
   } catch (error) {
     console.error("Error fetching calendar tasks:", error);
