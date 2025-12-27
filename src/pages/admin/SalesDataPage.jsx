@@ -1145,7 +1145,7 @@ const submissionData = await Promise.all(
                             Task Description
                           </th>
                           <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
-                            Task Start Date
+                            Task End Date
                           </th>
                           <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             Freq
@@ -1444,7 +1444,7 @@ const submissionData = await Promise.all(
                       Task Description
                     </th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-yellow-50 whitespace-nowrap">
-                      Task Start Date
+                      Task End Date
                     </th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Freq

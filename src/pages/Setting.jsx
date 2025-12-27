@@ -321,7 +321,6 @@ const [userForm, setUserForm] = useState({
   email: '',
   password: '',
   phone: '',
-  employee_id: '',
   departments: [], // Change from single department to array
   givenBy: '',
   role: 'user',
@@ -366,7 +365,6 @@ const handleUpdateUser = async (e) => {
     user_name: userForm.username,
     email_id: userForm.email,
     number: userForm.phone,
-    employee_id: userForm.employee_id,
     role: userForm.role,
     status: userForm.status,
     user_access: userForm.departments.join(',') // Join array into comma-separated string
@@ -488,7 +486,6 @@ const handleEditUser = (userId) => {
     email: user.email_id,
     password: '', // Leave empty initially, user can change if needed
     phone: user.number,
-    employee_id: user.employee_id || '',
     departments: user.user_access ? user.user_access.split(',').map(d => d.trim()) : [], // Split comma-separated string into array
     role: user.role,
     status: user.status
@@ -524,7 +521,6 @@ const resetUserForm = () => {
     email: '',
     password: '',
     phone: '',
-    employee_id: '',
     departments: [], // Reset to empty array
     givenBy: '',
     role: 'user',
@@ -942,7 +938,6 @@ const resetUserForm = () => {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><span className="text-gray-500">Email:</span> <span className="font-medium">{user?.email_id || "—"}</span></div>
                 <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{user?.number || "—"}</span></div>
-                <div><span className="text-gray-500">Emp ID:</span> <span className="font-medium">{user?.employee_id || "N/A"}</span></div>
                 <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{user?.user_access || "N/A"}</span></div>
               </div>
             </div>
@@ -965,9 +960,7 @@ const resetUserForm = () => {
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Phone No.
             </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Employee ID
-            </th>
+
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Department
             </th>
@@ -1026,9 +1019,7 @@ const resetUserForm = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{user?.number}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{user?.employee_id || 'N/A'}</div>
-                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{user?.user_access || 'N/A'}</div>
                 </td>
@@ -1339,20 +1330,7 @@ const resetUserForm = () => {
 
 
 
-                        <div className="sm:col-span-3">
-  <label htmlFor="employee_id" className="block text-sm font-medium text-gray-700">
-    Employee ID
-  </label>
-  <input
-    type="text"
-    name="employee_id"
-    id="employee_id"
-    value={userForm.employee_id}
-    onChange={handleUserInputChange}
-    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-    placeholder="Enter Employee ID"
-  />
-</div>
+
 
                         <div className="sm:col-span-3">
                           <label htmlFor="role" className="block text-sm font-medium text-gray-700">
