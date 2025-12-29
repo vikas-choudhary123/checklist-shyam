@@ -282,6 +282,7 @@ function DelegationDataPage() {
         }
       }
 
+      return matchesSearch && matchesDateFilter;
     });
   }, [delegation, debouncedSearchTerm, dateFilter]);
 
