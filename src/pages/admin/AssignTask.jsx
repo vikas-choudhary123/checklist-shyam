@@ -217,6 +217,7 @@ export default function AssignTask() {
     { value: "fortnightly", label: "Fortnightly" },
     { value: "monthly", label: "Monthly" },
     { value: "quarterly", label: "Quarterly" },
+    { value: "half-yearly", label: "Half Yearly" },
     { value: "yearly", label: "Yearly" },
     { value: "end-of-1st-week", label: "End of 1st Week" },
     { value: "end-of-2nd-week", label: "End of 2nd Week" },
@@ -411,6 +412,12 @@ useEffect(() => {
             taskDate = findNextWorkingDay(currentDate);
             if (!taskDate) break; // No more working days available
             currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 3);
+            break;
+
+          case "half-yearly":
+            taskDate = findNextWorkingDay(currentDate);
+            if (!taskDate) break; // No more working days available
+            currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 6);
             break;
 
           case "yearly":
