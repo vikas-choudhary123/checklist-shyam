@@ -40,6 +40,8 @@ function HistoryPage() {
   const dispatch = useDispatch()
 
   const historyTableContainerRef = useRef(null)
+  const scrollTimeout = useRef(null)
+  const lastScrollTop = useRef(0)
 
   useEffect(() => {
     dispatch(checklistHistoryData(1))
@@ -52,27 +54,38 @@ function HistoryPage() {
     const user = localStorage.getItem("user-name")
     setUserRole(role || "")
     setUsername(user || "")
-    setIsSuperAdmin(user === "admin")
+    setIsSuperAdmin(user === "admin" || role === "admin")
   }, [])
 
   // Handle scroll for history
   const handleScrollHistory = useCallback(() => {
     if (!historyTableContainerRef.current || isLoadingMoreHistory || !hasMoreHistory || history.length === 0) return
 
-    const { scrollTop, scrollHeight, clientHeight } = historyTableContainerRef.current
-    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100
+    if (scrollTimeout.current) return
 
-    if (isNearBottom) {
-      setIsLoadingMoreHistory(true)
-      dispatch(checklistHistoryData(currentPageHistory + 1))
-        .then((result) => {
-          if (result.payload && result.payload.length < 50) {
-            setHasMoreHistory(false)
-          }
-          setCurrentPageHistory(prev => prev + 1)
-        })
-        .finally(() => setIsLoadingMoreHistory(false))
-    }
+    scrollTimeout.current = setTimeout(() => {
+      if (!historyTableContainerRef.current) return
+      const { scrollTop, scrollHeight, clientHeight } = historyTableContainerRef.current
+      
+      // If scrollTop hasn't changed (or is 0 due to initial render), it might be horizontal scroll
+      if (scrollTop === lastScrollTop.current) return
+      lastScrollTop.current = scrollTop
+
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50
+
+      if (isNearBottom) {
+        setIsLoadingMoreHistory(true)
+        dispatch(checklistHistoryData(currentPageHistory + 1))
+          .then((result) => {
+            if (result.payload && result.payload.length < 50) {
+              setHasMoreHistory(false)
+            }
+            setCurrentPageHistory(prev => prev + 1)
+          })
+          .finally(() => setIsLoadingMoreHistory(false))
+      }
+      scrollTimeout.current = null
+    }, 200)
   }, [isLoadingMoreHistory, hasMoreHistory, currentPageHistory, dispatch, history.length])
 
   useEffect(() => {
@@ -543,7 +556,7 @@ function HistoryPage() {
 
         {/* Table Container - More height */}
         <div className="bg-white rounded-md shadow-sm overflow-hidden">
-          <div ref={historyTableContainerRef} className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+          <div ref={historyTableContainerRef} className="overflow-x-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
             {initialHistoryLoading ? (
               <div className="text-center py-10">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>

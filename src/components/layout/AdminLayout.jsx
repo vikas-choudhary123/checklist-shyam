@@ -84,8 +84,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       label: "Quick Task",
       icon: Zap,
       active: location.pathname === "/dashboard/quick-task",
-      // Only show for super admin (username = 'admin')
-      showFor: isSuperAdmin ? ["admin"] : [],
+      active: location.pathname === "/dashboard/quick-task",
+      // Show for all admins
+      showFor: ["admin"],
     },
     {
       href: "/dashboard/assign-task",
@@ -142,8 +143,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
       label: "Settings",
       icon: Settings,
       active: location.pathname.includes("/dashboard/setting"),
-      // Only show for super admin (username = 'admin')
-      showFor: isSuperAdmin ? ["admin"] : [],
+      active: location.pathname.includes("/dashboard/setting"),
+      // Show for all admins
+      showFor: ["admin"],
     },
     {
       href: "/dashboard/training-video",
@@ -231,9 +233,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                   <p className="text-sm font-medium text-blue-700 truncate">
                     {username || "User"}{" "}
                     {userRole === "admin"
-                      ? isSuperAdmin
-                        ? "(Super Admin)"
-                        : "(Admin)"
+                      ? "(Admin)"
                       : ""}
                   </p>
                   <p className="text-xs text-blue-600 truncate">
@@ -296,8 +296,19 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                 <span>Logout</span>
               </button>
             </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-blue-100 flex justify-center">
+              <a
+                href="https://www.botivate.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 group"
+              >
+                <span className="text-[10px] text-gray-500 group-hover:text-blue-600 transition-colors">Powered by</span>
+                <span className="text-[11px] font-bold text-blue-600 group-hover:text-blue-700 transition-colors">BOTIVATE</span>
+              </a>
+            </div>
           </div>
-        </div>
       </aside>
 
       {/* Mobile menu button and sidebar - similar structure as desktop but with mobile classes */}
@@ -361,9 +372,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                     <p className="text-sm font-medium text-blue-700">
                       {username || "User"}{" "}
                       {userRole === "admin"
-                        ? isSuperAdmin
-                          ? "(Super Admin)"
-                          : "(Admin)"
+                        ? "(Admin)"
                         : ""}
                     </p>
                     <p className="text-xs text-blue-600">
@@ -425,6 +434,17 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                 <span>Logout</span>
               </button>
             </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-blue-100 flex justify-center">
+              <a
+                href="https://www.botivate.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 group"
+              >
+                <span className="text-[10px] text-gray-500 group-hover:text-blue-600 transition-colors">Powered by</span>
+                <span className="text-[11px] font-bold text-blue-600 group-hover:text-blue-700 transition-colors">BOTIVATE</span>
+              </a>
             </div>
           </div>
         </div>
@@ -527,19 +547,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
               </a>
             </div>
 
-            {/* Desktop Footer */}
-            <a
-              href="https://www.botivate.in/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex items-center justify-center gap-2 py-1.5 gradient-bg hover:opacity-95 transition-opacity"
-            >
-              <span className="text-xs text-white/80">Powered by</span>
-              <span className="font-bold text-white text-xs tracking-wide">BOTIVATE</span>
-              <svg className="w-3 h-3 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
           </div>
         </main>
 
@@ -560,9 +567,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode }) {
                     <p className="text-sm font-medium text-blue-700">
                       {username || "User"}{" "}
                       {userRole === "admin"
-                        ? isSuperAdmin
-                          ? "(Super Admin)"
-                          : "(Admin)"
+                        ? "(Admin)"
                         : ""}
                     </p>
                     <p className="text-xs text-blue-600">

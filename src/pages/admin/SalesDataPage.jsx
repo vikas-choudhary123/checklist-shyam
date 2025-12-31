@@ -1495,6 +1495,15 @@ const submissionData = await Promise.all(
                       </th>
                     )}
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Status
+                    </th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      Remarks
+                    </th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Upload Image
+                    </th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task ID
                     </th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1520,15 +1529,6 @@ const submissionData = await Promise.all(
                     </th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Attachment
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Status
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                      Remarks
-                    </th>
-                    <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Upload Image
                     </th>
                   </tr>
                 </thead>
@@ -1571,57 +1571,6 @@ const submissionData = await Promise.all(
                               />
                             </td>
                           )}
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.task_id || "—"}</div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.department || "—"}</div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.given_by || "—"}</div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.name || "—"}</div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words" title={account.task_description}>
-                              {account.task_description || "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">
-                              {account.task_start_date ? (() => {
-                                const dateObj = new Date(account.task_start_date);
-                                const formattedDate = `${("0" + dateObj.getDate()).slice(-2)
-                                  }/${("0" + (dateObj.getMonth() + 1)).slice(-2)
-                                  }/${dateObj.getFullYear()
-                                  } ${("0" + dateObj.getHours()).slice(-2)
-                                  }:${("0" + dateObj.getMinutes()).slice(-2)
-                                  }:${("0" + dateObj.getSeconds()).slice(-2)
-                                  }`;
-
-                                return (
-                                  <div>
-                                    <div className="font-medium break-words">
-                                      {formattedDate.split(" ")[0]}
-                                    </div>
-                                    <div className="text-xs text-gray-500 break-words">
-                                      {formattedDate.split(" ")[1]}
-                                    </div>
-                                  </div>
-                                );
-                              })() : "—"}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.frequency || "—"}</div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.enable_reminder || "—"}</div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-4">
-                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.require_attachment || "—"}</div>
-                          </td>
                           <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
                             <select
                               disabled={!isSelected}
@@ -1705,6 +1654,57 @@ const submissionData = await Promise.all(
                                 />
                               </label>
                             )}
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.task_id || "—"}</div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.department || "—"}</div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.given_by || "—"}</div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.name || "—"}</div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 min-w-[150px]">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words" title={account.task_description}>
+                              {account.task_description || "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">
+                              {account.task_start_date ? (() => {
+                                const dateObj = new Date(account.task_start_date);
+                                const formattedDate = `${("0" + dateObj.getDate()).slice(-2)
+                                  }/${("0" + (dateObj.getMonth() + 1)).slice(-2)
+                                  }/${dateObj.getFullYear()
+                                  } ${("0" + dateObj.getHours()).slice(-2)
+                                  }:${("0" + dateObj.getMinutes()).slice(-2)
+                                  }:${("0" + dateObj.getSeconds()).slice(-2)
+                                  }`;
+
+                                return (
+                                  <div>
+                                    <div className="font-medium break-words">
+                                      {formattedDate.split(" ")[0]}
+                                    </div>
+                                    <div className="text-xs text-gray-500 break-words">
+                                      {formattedDate.split(" ")[1]}
+                                    </div>
+                                  </div>
+                                );
+                              })() : "—"}
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.frequency || "—"}</div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.enable_reminder || "—"}</div>
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-4">
+                            <div className="text-xs sm:text-sm text-gray-900 break-words">{account.require_attachment || "—"}</div>
                           </td>
                         </tr>
                       );
