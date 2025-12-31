@@ -560,7 +560,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
               {/* <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}> */}
 <div 
   ref={tableContainerRef}
-  className="overflow-x-auto overflow-y-auto" 
+  className="overflow-x-auto overflow-y-auto custom-scrollbar" 
   style={{ maxHeight: 'calc(100vh - 220px)' }}
 >
                 {/* Mobile Card View */}
@@ -628,7 +628,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                         { key: 'department', label: 'Department' },
                         { key: 'given_by', label: 'Given By' },
                         { key: 'name', label: 'Name' },
-                        { key: 'task_description', label: 'Task Description', minWidth: 'min-w-[300px]' },
+                        { key: 'task_description', label: 'Task Description', minWidth: 'whitespace-nowrap' },
                         { key: 'task_start_date', label: 'Start Date', bg: 'bg-yellow-50' },
                         { key: 'submission_date', label: 'End Date', bg: 'bg-yellow-50' },
                         { key: 'frequency', label: 'Frequency' },
@@ -710,7 +710,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                           </td>
 
                           {/* Task Description */}
-                          <td className="px-6 py-4 text-sm text-gray-500 min-w-[300px] max-w-[400px]">
+                          <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                             {editingTaskId === task.task_id ? (
                               <textarea
                                 value={editFormData.task_description}
@@ -719,7 +719,7 @@ const filteredChecklistTasks = quickTask.filter(task => {
                                 rows="3"
                               />
                             ) : (
-                              <div className="whitespace-normal break-words">
+                              <div className="whitespace-nowrap">
                                 {task.task_description}
                               </div>
                             )}

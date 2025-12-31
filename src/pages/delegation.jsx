@@ -832,7 +832,7 @@ const handleSubmit = async () => {
             </div>
           ) : (
             /* Regular Tasks Table - Mobile Responsive */
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -862,7 +862,7 @@ const handleSubmit = async () => {
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Name
                     </th>
-                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                    <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Task Description
                     </th>
                     <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-yellow-50">
@@ -932,9 +932,9 @@ const handleSubmit = async () => {
                               {account.name || "—"}
                             </div>
                           </td>
-                          <td className="px-2 sm:px-6 py-2 sm:py-4 min-w-[200px] max-w-[300px]">
+                          <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                             <div
-                              className="text-xs sm:text-sm text-gray-900 whitespace-normal break-words leading-relaxed"
+                              className="text-xs sm:text-sm text-gray-900 whitespace-nowrap"
                               title={account.task_description}
                             >
                               {account.task_description || "—"}

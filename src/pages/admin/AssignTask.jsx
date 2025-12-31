@@ -202,8 +202,13 @@ export default function AssignTask() {
   }, [dispatch])
 
 
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5);
+  };
+
   const [date, setSelectedDate] = useState(new Date());
-  const [time, setTime] = useState("09:00");
+  const [time, setTime] = useState(getCurrentTime());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedTasks, setGeneratedTasks] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -506,7 +511,7 @@ alert(`Successfully submitted ${generatedTasks.length} tasks!`);
         requireAttachment: false,
       });
       setSelectedDate(null);
-      setTime("09:00");
+      setTime(getCurrentTime());
       setGeneratedTasks([]);
       setAccordionOpen(false);
     } catch (error) {
@@ -524,7 +529,7 @@ alert(`Successfully submitted ${generatedTasks.length} tasks!`);
   const getFormattedDateTime = () => {
     if (!date) return "Select date and time";
     const dateStr = formatDate(date);
-    const timeStr = time || "09:00";
+    const timeStr = time || getCurrentTime();
     return `${dateStr} at ${timeStr}`;
   };
 
