@@ -158,11 +158,11 @@ function HistoryPage() {
     }
   }
 
-  // Handle select all for delegation items without admin_done = 'Done'
+  // Handle select all for delegation items without admin_done = 'Done' and status = 'completed'
   const handleSelectAllDelegation = (isChecked) => {
     if (isChecked) {
       const pendingItems = filteredDelegationData
-        .filter(item => item.admin_done !== 'Done')
+        .filter(item => item.admin_done !== 'Done' && item.status === 'completed')
         .map(item => ({ id: item.id }))
       setSelectedDelegationItems(pendingItems)
     } else {
@@ -349,7 +349,7 @@ function HistoryPage() {
 
   // Count pending approval items
   const pendingApprovalCount = filteredHistoryData.filter(item => item.admin_done !== 'Done').length
-  const pendingDelegationApprovalCount = filteredDelegationData.filter(item => item.admin_done !== 'Done').length
+  const pendingDelegationApprovalCount = filteredDelegationData.filter(item => item.admin_done !== 'Done' && item.status === 'completed').length
 
   // Confirmation Modal Component
   const ConfirmationModal = ({ isOpen, itemCount, onConfirm, onCancel }) => {
@@ -754,7 +754,10 @@ function HistoryPage() {
                                 type="checkbox"
                                 checked={isDelegationItemSelected(item.id)}
                                 onChange={(e) => handleDelegationItemSelect(item.id, e.target.checked)}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                disabled={item.status !== "completed"}
+                                className={`h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded ${
+                                  item.status !== "completed" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                                }`}
                               />
                             ) : (
                               <span className="text-gray-300">—</span>

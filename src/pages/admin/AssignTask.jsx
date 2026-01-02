@@ -487,18 +487,150 @@ useEffect(() => {
     setIsSubmitting(true);
 
     try {
-      if (generatedTasks.length === 0) {
-        alert("Please generate tasks first by clicking Preview Generated Tasks");
+      // Validate required fields
+      if (
+        !date ||
+        !time ||
+        !formData.doer ||
+        !formData.description ||
+        !formData.frequency
+      ) {
+        alert("Please fill in all required fields including date and time.");
         setIsSubmitting(false);
         return;
       }
 
-      // dispatch(assignTaskInTable(generatedTasks));
-      // alert(`Successfully submitted ${generatedTasks.length} tasks!`);
+      if (workingDays.length === 0) {
+        alert("Working days data not loaded yet. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
 
-      await pushAssignTaskApi(generatedTasks);   // FIXED ✔
-alert(`Successfully submitted ${generatedTasks.length} tasks!`);
+      // Generate tasks if not already generated
+      let tasksToSubmit = generatedTasks;
+      if (tasksToSubmit.length === 0) {
+        const selectedDate = new Date(date);
+        const tasks = [];
 
+        // For one-time tasks
+        if (formData.frequency === "one-time") {
+          const taskDateStr = findNextWorkingDay(selectedDate);
+          const taskDateTimeStr = formatDateTimeForStorage(
+            new Date(taskDateStr.split("/").reverse().join("-")),
+            time
+          );
+
+          tasks.push({
+            description: formData.description,
+            department: formData.department,
+            givenBy: formData.givenBy,
+            doer: formData.doer,
+            dueDate: taskDateTimeStr,
+            status: "pending",
+            frequency: formData.frequency,
+            enableReminders: formData.enableReminders,
+            requireAttachment: formData.requireAttachment,
+          });
+        } else {
+          // For recurring tasks
+          let currentDate = new Date(selectedDate);
+          const endDate = addYears(currentDate, 2);
+          let taskCount = 0;
+          const maxTasks = 365;
+
+          while (currentDate <= endDate && taskCount < maxTasks) {
+            let taskDate;
+
+            switch (formData.frequency) {
+              case "daily":
+                taskDate = findNextWorkingDay(currentDate);
+                if (!taskDate) break;
+                currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 1);
+                break;
+              case "weekly":
+                taskDate = findNextWorkingDay(currentDate);
+                if (!taskDate) break;
+                currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 7);
+                break;
+              case "fortnightly":
+                taskDate = findNextWorkingDay(currentDate);
+                if (!taskDate) break;
+                currentDate = addDays(new Date(taskDate.split("/").reverse().join("-")), 14);
+                break;
+              case "monthly":
+                taskDate = findNextWorkingDay(currentDate);
+                if (!taskDate) break;
+                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+                break;
+              case "quarterly":
+                taskDate = findNextWorkingDay(currentDate);
+                if (!taskDate) break;
+                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 3);
+                break;
+              case "half-yearly":
+                taskDate = findNextWorkingDay(currentDate);
+                if (!taskDate) break;
+                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 6);
+                break;
+              case "yearly":
+                taskDate = findNextWorkingDay(currentDate);
+                if (!taskDate) break;
+                currentDate = addYears(new Date(taskDate.split("/").reverse().join("-")), 1);
+                break;
+              case "end-of-1st-week":
+              case "end-of-2nd-week":
+              case "end-of-3rd-week":
+              case "end-of-4th-week":
+                const weekNum = parseInt(formData.frequency.split("-")[2]);
+                taskDate = findEndOfWeekDate(currentDate, weekNum);
+                if (!taskDate) break;
+                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+                break;
+              case "end-of-last-week":
+                taskDate = findEndOfWeekDate(currentDate, -1);
+                if (!taskDate) break;
+                currentDate = addMonths(new Date(taskDate.split("/").reverse().join("-")), 1);
+                break;
+              default:
+                currentDate = endDate;
+                break;
+            }
+
+            if (!taskDate) {
+              break;
+            }
+
+            const taskDateTimeStr = formatDateTimeForStorage(
+              new Date(taskDate.split("/").reverse().join("-")),
+              time
+            );
+
+            tasks.push({
+              description: formData.description,
+              department: formData.department,
+              givenBy: formData.givenBy,
+              doer: formData.doer,
+              dueDate: taskDateTimeStr,
+              status: "pending",
+              frequency: formData.frequency,
+              enableReminders: formData.enableReminders,
+              requireAttachment: formData.requireAttachment,
+            });
+
+            taskCount++;
+          }
+        }
+        tasksToSubmit = tasks;
+      }
+
+      if (tasksToSubmit.length === 0) {
+        alert("No tasks could be generated. Please check your inputs.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      await pushAssignTaskApi(tasksToSubmit);
+      alert(`Successfully submitted ${tasksToSubmit.length} tasks!`);
 
       // Reset form
       setFormData({

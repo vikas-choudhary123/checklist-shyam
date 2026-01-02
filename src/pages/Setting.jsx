@@ -202,18 +202,18 @@ const handleSubmitLeave = async () => {
 
   try {
     // Update each selected user with leave information
-    const updatePromises = selectedUsers.map(userId =>
-      dispatch(updateUser({
-        id: userId,
-        updatedUser: {
-          leave_date: leaveStartDate, // You can store start date or both dates
-          leave_end_date: leaveEndDate, // Add this field to your user table if needed
-          remark: remark
-        }
-      })).unwrap()
-    );
+    // const updatePromises = selectedUsers.map(userId =>
+    //   dispatch(updateUser({
+    //     id: userId,
+    //     updatedUser: {
+    //       leave_date: leaveStartDate, // You can store start date or both dates
+    //       leave_end_date: leaveEndDate, // Add this field to your user table if needed
+    //       remark: remark
+    //     }
+    //   })).unwrap()
+    // );
 
-    await Promise.all(updatePromises);
+    // await Promise.all(updatePromises);
 
     // Delete matching checklist tasks for the date range
     const deleteChecklistPromises = selectedUsers.map(async (userId) => {
@@ -227,7 +227,7 @@ const handleSubmitLeave = async () => {
           // console.log(`Deleting tasks for ${user.user_name} from ${leaveStartDate} to ${leaveEndDate}`);
 
           // Delete checklist tasks where name matches and date falls within the range
-          const { error } = await fetch(`https://YOUR_SERVER/api/checklist/delete-range`, {
+          const { error } = await fetch(`${import.meta.env.VITE_API_BASE_URL}/checklist/delete-range`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -799,6 +799,9 @@ const resetUserForm = () => {
         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
           Current Remarks
         </th>
+        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Action
+        </th>
       </tr>
     </thead>
     <tbody className="bg-white divide-y divide-gray-200">
@@ -827,6 +830,28 @@ const resetUserForm = () => {
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
             <div className="text-sm text-gray-900">{user.remark || 'No remarks'}</div>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <button
+              onClick={() => {
+                if(window.confirm(`Are you sure you want to clear leave for ${user.user_name}?`)) {
+                   dispatch(updateUser({
+                    id: user.id,
+                    updatedUser: {
+                      leave_date: null,
+                      leave_end_date: null,
+                      remark: null
+                    }
+                  })).then(() => {
+                    setTimeout(() => window.location.reload(), 500);
+                  });
+                }
+              }}
+              className="text-red-600 hover:text-red-900"
+              title="Clear Leave (Does NOT delete user)"
+            >
+              <Trash2 size={18} />
+            </button>
           </td>
         </tr>
       ))}
