@@ -1288,32 +1288,36 @@ const submissionData = await Promise.all(
                                   )}
                                 </td>
                               )}
-                              <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
-                                <div className="text-xs sm:text-sm text-gray-900 break-words">
-                                  {history.task_start_date ? (() => {
-                                    const date = parseSupabaseDate(history.task_start_date);
-                                    if (!date || isNaN(date.getTime())) return "Invalid date";
+                             <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
+  <div className="text-xs sm:text-sm text-gray-900 break-words">
+    {account.task_start_date ? (() => {
+      // Parse the date from database (assuming UTC)
+      const dateObj = new Date(account.task_start_date);
+      
+      // Convert to local time
+      const localDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000);
+      
+      // Format to DD/MM/YYYY HH:MM:SS
+      const day = localDate.getDate().toString().padStart(2, '0');
+      const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
+      const year = localDate.getFullYear();
+      const hours = localDate.getHours().toString().padStart(2, '0');
+      const minutes = localDate.getMinutes().toString().padStart(2, '0');
+      const seconds = localDate.getSeconds().toString().padStart(2, '0');
 
-                                    const day = date.getDate().toString().padStart(2, '0');
-                                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                                    const year = date.getFullYear();
-                                    const hours = date.getHours().toString().padStart(2, '0');
-                                    const minutes = date.getMinutes().toString().padStart(2, '0');
-                                    const seconds = date.getSeconds().toString().padStart(2, '0');
-
-                                    return (
-                                      <div>
-                                        <div className="font-medium break-words">
-                                          {`${day}/${month}/${year}`}
-                                        </div>
-                                        <div className="text-xs text-gray-500 break-words">
-                                          {`${hours}:${minutes}:${seconds}`}
-                                        </div>
-                                      </div>
-                                    );
-                                  })() : "—"}
-                                </div>
-                              </td>
+      return (
+        <div>
+          <div className="font-medium break-words">
+            {`${day}/${month}/${year}`}
+          </div>
+          <div className="text-xs text-gray-500 break-words">
+            {`${hours}:${minutes}:${seconds}`}
+          </div>
+        </div>
+      );
+    })() : "—"}
+  </div>
+</td>
                               <td className="px-2 sm:px-3 py-2 sm:py-4">
                                 <div className="text-xs sm:text-sm text-gray-900 break-words">{history.frequency || "—"}</div>
                               </td>
@@ -1541,7 +1545,7 @@ const submissionData = await Promise.all(
                       Given By
                     </th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      Namee
+                      Name
                     </th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                       Task Description
