@@ -283,7 +283,13 @@ useEffect(() => {
 
   const formatDateTimeForStorage = (date, time) => {
     if (!date || !time) return "";
-    const dateString = date.toISOString().split("T")[0];
+    // Use local time components to avoid UTC conversion shifts
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    // Construct simplified ISO string that DB expects (e.g., "2026-01-08T18:00:00")
+    // Since DB is TIMESTAMP WITHOUT TIMEZONE, this will store "2026-01-08 18:00:00"
     return `${dateString}T${time}:00`;
   };
 
