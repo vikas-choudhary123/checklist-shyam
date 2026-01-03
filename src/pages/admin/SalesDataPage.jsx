@@ -1291,30 +1291,42 @@ const submissionData = await Promise.all(
                              <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
   <div className="text-xs sm:text-sm text-gray-900 break-words">
     {account.task_start_date ? (() => {
-      // Parse the date from database (assuming UTC)
-      const dateObj = new Date(account.task_start_date);
+      // Parse date string manually to avoid timezone conversion
+      // We want to show exactly what is in the DB (e.g. "2026-01-03 13:00:00")
+      const dateStr = account.task_start_date;
       
-      // Convert to local time
-      const localDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000);
+      // robust cleanup: remove 'T', remove milliseconds/Z, remove offset
+      const cleanedStr = dateStr
+        .replace('T', ' ')
+        .replace(/\.\d+Z?$/, '') // remove .000 or .000Z
+        .replace(/[+-]\d{2}:\d{2}$/, ''); // remove +05:30
+        
+      const parts = cleanedStr.split(' ');
+      if (parts.length >= 2) {
+        const [y, m, d] = parts[0].split('-');
+        const timePart = parts[1];
+        
+        return (
+          <div>
+            <div className="font-medium break-words">
+              {d}/{m}/{y}
+            </div>
+            <div className="text-xs text-gray-500 break-words">
+              {timePart}
+            </div>
+          </div>
+        );
+      }
       
-      // Format to DD/MM/YYYY HH:MM:SS
-      const day = localDate.getDate().toString().padStart(2, '0');
-      const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
-      const year = localDate.getFullYear();
-      const hours = localDate.getHours().toString().padStart(2, '0');
-      const minutes = localDate.getMinutes().toString().padStart(2, '0');
-      const seconds = localDate.getSeconds().toString().padStart(2, '0');
-
-      return (
-        <div>
-          <div className="font-medium break-words">
-            {`${day}/${month}/${year}`}
-          </div>
-          <div className="text-xs text-gray-500 break-words">
-            {`${hours}:${minutes}:${seconds}`}
-          </div>
-        </div>
-      );
+      // Fallback for simple date or unexpected format
+      const fallbackDate = new Date(dateStr);
+      if (!isNaN(fallbackDate.getTime())) {
+         const dd = String(fallbackDate.getDate()).padStart(2, '0');
+         const mm = String(fallbackDate.getMonth() + 1).padStart(2, '0');
+         const yyyy = fallbackDate.getFullYear();
+         return `${dd}/${mm}/${yyyy}`;
+      }
+      return dateStr;
     })() : "—"}
   </div>
 </td>
@@ -1464,7 +1476,17 @@ const submissionData = await Promise.all(
                           <div><span className="text-gray-500">Dept:</span> <span className="font-medium">{account.department || "—"}</span></div>
                           <div><span className="text-gray-500">Given By:</span> <span className="font-medium">{account.given_by || "—"}</span></div>
                           <div><span className="text-gray-500">Frequency:</span> <span className="font-medium">{account.frequency || "—"}</span></div>
-                          <div><span className="text-gray-500">Date:</span> <span className="font-medium">{account.task_start_date ? new Date(account.task_start_date).toLocaleDateString() : "—"}</span></div>
+                          <div><span className="text-gray-500">Date:</span> <span className="font-medium">{account.task_start_date ? (() => {
+                            const dateStr = account.task_start_date;
+                            const cleanedStr = dateStr.replace('T', ' ').replace(/\.\d+Z?$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
+                            const parts = cleanedStr.split(' ');
+                            if (parts.length >= 2) {
+                              const [y, m, d] = parts[0].split('-');
+                              const timePart = parts[1];
+                              return `${d}/${m}/${y} ${timePart}`;
+                            }
+                            return dateStr;
+                          })() : "—"}</span></div>
                         </div>
                         {userRole === "user" && isSelected && (
                           <div className="border-t pt-2 mt-2 space-y-2">
@@ -1707,25 +1729,42 @@ const submissionData = await Promise.all(
                           <td className="px-2 sm:px-3 py-2 sm:py-4 bg-yellow-50">
                             <div className="text-xs sm:text-sm text-gray-900 break-words">
                               {account.task_start_date ? (() => {
-                                const dateObj = new Date(account.task_start_date);
-                                const formattedDate = `${("0" + dateObj.getDate()).slice(-2)
-                                  }/${("0" + (dateObj.getMonth() + 1)).slice(-2)
-                                  }/${dateObj.getFullYear()
-                                  } ${("0" + dateObj.getHours()).slice(-2)
-                                  }:${("0" + dateObj.getMinutes()).slice(-2)
-                                  }:${("0" + dateObj.getSeconds()).slice(-2)
-                                  }`;
-
-                                return (
-                                  <div>
-                                    <div className="font-medium break-words">
-                                      {formattedDate.split(" ")[0]}
+                                // Parse date string manually to avoid timezone conversion
+                                // We want to show exactly what is in the DB (e.g. "2026-01-03 13:00:00")
+                                const dateStr = account.task_start_date;
+                                
+                                // robust cleanup: remove 'T', remove milliseconds/Z, remove offset
+                                const cleanedStr = dateStr
+                                  .replace('T', ' ')
+                                  .replace(/\.\d+Z?$/, '') // remove .000 or .000Z
+                                  .replace(/[+-]\d{2}:\d{2}$/, ''); // remove +05:30
+                                  
+                                const parts = cleanedStr.split(' ');
+                                if (parts.length >= 2) {
+                                  const [y, m, d] = parts[0].split('-');
+                                  const timePart = parts[1];
+                                  
+                                  return (
+                                    <div>
+                                      <div className="font-medium break-words">
+                                        {d}/{m}/{y}
+                                      </div>
+                                      <div className="text-xs text-gray-500 break-words">
+                                        {timePart}
+                                      </div>
                                     </div>
-                                    <div className="text-xs text-gray-500 break-words">
-                                      {formattedDate.split(" ")[1]}
-                                    </div>
-                                  </div>
-                                );
+                                  );
+                                }
+                                
+                                // Fallback for simple date or unexpected format
+                                const fallbackDate = new Date(dateStr);
+                                if (!isNaN(fallbackDate.getTime())) {
+                                   const dd = String(fallbackDate.getDate()).padStart(2, '0');
+                                   const mm = String(fallbackDate.getMonth() + 1).padStart(2, '0');
+                                   const yyyy = fallbackDate.getFullYear();
+                                   return `${dd}/${mm}/${yyyy}`;
+                                }
+                                return dateStr;
                               })() : "—"}
                             </div>
                           </td>
